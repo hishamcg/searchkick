@@ -1,5 +1,7 @@
 module Searchkick
   class Indexer
+    attr_reader :queued_items
+
     def initialize
       @queued_items = []
     end
