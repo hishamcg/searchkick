@@ -567,11 +567,11 @@ module Searchkick
     end
 
     def set_suggestions(payload)
-      suggest_fields = (searchkick_options[:suggest] || []).map(&:to_s)
+      # suggest_fields = (searchkick_options[:suggest] || []).map(&:to_s)
 
       # intersection
-      if options[:fields]
-        suggest_fields &= options[:fields].map { |v| (v.is_a?(Hash) ? v.keys.first : v).to_s.split("^", 2).first }
+      if options[:suggest_fields]
+        suggest_fields = options[:suggest_fields].map { |v| (v.is_a?(Hash) ? v.keys.first : v).to_s.split("^", 2).first }
       end
 
       if suggest_fields.any?
