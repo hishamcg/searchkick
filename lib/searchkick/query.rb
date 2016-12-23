@@ -64,7 +64,8 @@ module Searchkick
         index: index,
         body: body
       }
-      params[:type] = @type if @type
+      #params[:type] = @type if @type
+      params[:type] = options[:type] if options[:type]
       params[:routing] = @routing if @routing
       params.merge!(options[:request_params]) if options[:request_params]
       params
