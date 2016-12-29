@@ -282,7 +282,7 @@ module Searchkick
               factor = boost_fields[field] || 1
               shared_options = {
                 query: term,
-                boost: 10 * factor
+                boost: factor
               }
 
               match_type =
@@ -294,7 +294,6 @@ module Searchkick
                 end
 
               shared_options[:operator] = operator if match_type == :match || below50?
-
               if field == "_all" || field.end_with?(".analyzed")
                 shared_options[:cutoff_frequency] = 0.001 unless operator == "and" || misspellings == false
                 qs.concat [
@@ -304,6 +303,9 @@ module Searchkick
               elsif field.end_with?(".exact")
                 f = field.split(".")[0..-2].join(".")
                 queries << {match: {f => shared_options.merge(analyzer: "keyword")}}
+              elsif field.end_with?(".word_middle")
+                analyzer = "searchkick_word_middle_index"
+                qs << shared_options.merge(analyzer: analyzer)
               else
                 analyzer = field =~ /\.word_(start|middle|end)\z/ ? "searchkick_word_search" : "searchkick_autocomplete_search"
                 qs << shared_options.merge(analyzer: analyzer)
