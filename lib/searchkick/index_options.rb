@@ -43,13 +43,13 @@ module Searchkick
                 tokenizer: "standard",
                 # synonym should come last, after stemming and shingle
                 # shingle must come before searchkick_stemmer
-                filter: ["standard", "lowercase", "asciifolding", "searchkick_index_shingle", "searchkick_stemmer"]
+                filter: ["standard", "lowercase", "asciifolding", "searchkick_stemmer","searchkick_index_shingle"]
               },
               searchkick_search: {
                 type: "custom",
                 char_filter: ["ampersand"],
                 tokenizer: "standard",
-                filter: ["standard", "lowercase", "asciifolding", "searchkick_search_shingle", "searchkick_stemmer"]
+                filter: ["standard", "lowercase", "asciifolding", "searchkick_stemmer", "searchkick_search_shingle"]
               },
               searchkick_search2: {
                 type: "custom",
@@ -101,7 +101,7 @@ module Searchkick
               searchkick_word_middle_index: {
                 type: "custom",
                 tokenizer: "standard",
-                filter: ["lowercase", "asciifolding", "searchkick_ngram"]
+                filter: ["lowercase", "asciifolding", "hisham_index_shingle"]
               },
               searchkick_word_end_index: {
                 type: "custom",
@@ -112,6 +112,13 @@ module Searchkick
             filter: {
               searchkick_index_shingle: {
                 type: "shingle",
+                token_separator: ""
+              },
+              hisham_index_shingle:{
+                type: "shingle",
+                min_shingle_size: 2,
+                max_shingle_size: 3,
+                output_unigrams: true,
                 token_separator: ""
               },
               # lucky find http://web.archiveorange.com/archive/v/AAfXfQ17f57FcRINsof7
@@ -132,8 +139,8 @@ module Searchkick
               },
               searchkick_ngram: {
                 type: "nGram",
-                min_gram: 1,
-                max_gram: 50
+                min_gram: 3,
+                max_gram: 4
               },
               searchkick_stemmer: {
                 # use stemmer if language is lowercase, snowball otherwise
