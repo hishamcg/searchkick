@@ -296,10 +296,18 @@ module Searchkick
               shared_options[:operator] = operator if match_type == :match || below50?
               if field == "_all" || field.end_with?(".analyzed")
                 shared_options[:cutoff_frequency] = 0.001 unless operator == "and" || misspellings == false
-                qs.concat [
-                  shared_options.merge(analyzer: "searchkick_search"),
-                  shared_options.merge(analyzer: "searchkick_search2")
-                ]
+                
+                if field == "_all"
+                  qs.concat [
+                    shared_options.merge(analyzer: "searchkick_search",operator: "and"),
+                    shared_options.merge(analyzer: "searchkick_search2",operator: "and")
+                  ]
+                else
+                  qs.concat [
+                    shared_options.merge(analyzer: "searchkick_search"),
+                    shared_options.merge(analyzer: "searchkick_search2")
+                  ]
+                end
               elsif field.end_with?(".exact")
                 f = field.split(".")[0..-2].join(".")
                 queries << {match: {f => shared_options.merge(analyzer: "keyword")}}
@@ -323,8 +331,9 @@ module Searchkick
                       bool: {
                         should: qs.map { |q| {match_type => {field => q}} }
                       }
-                    },
-                    should: {match_type => {field.sub(/\.word_(start|middle|end)\z/, ".analyzed") => qs.first}}
+                    }
+                    #,
+                    #should: {match_type => {field.sub(/\.word_(start|middle|end)\z/, ".analyzed") => qs.first}}
                   }
                 }
               else
@@ -489,11 +498,15 @@ module Searchkick
             fields.map { |f| "#{f}.autocomplete" }
           else
             fields.map do |value|
-              k, v = value.is_a?(Hash) ? value.to_a.first : [value, options[:match] || searchkick_options[:match] || :word]
-              k2, boost = k.to_s.split("^", 2)
-              field = "#{k2}.#{v == :word ? 'analyzed' : v}"
-              boost_fields[field] = boost.to_f if boost
-              field
+              if value == "_all"
+                value
+              else
+                k, v = value.is_a?(Hash) ? value.to_a.first : [value, options[:match] || searchkick_options[:match] || :word]
+                k2, boost = k.to_s.split("^", 2)
+                field = "#{k2}.#{v == :word ? 'analyzed' : v}"
+                boost_fields[field] = boost.to_f if boost
+                field
+              end
             end
           end
         else
