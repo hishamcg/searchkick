@@ -387,10 +387,8 @@ module Searchkick
 
         custom_filters = []
         multiply_filters = []
-        sum_filters = []
 
         set_boost_by(multiply_filters, custom_filters)
-        set_boost_by_sum(sum_filters, custom_filters)
         set_boost_where(custom_filters, personalize_field)
         set_boost_by_distance(custom_filters) if options[:boost_by_distance]
 
@@ -410,16 +408,6 @@ module Searchkick
               functions: multiply_filters,
               query: payload,
               score_mode: "multiply"
-            }
-          }
-        end
-
-        if sum_filters.any?
-          payload = {
-            function_score: {
-              functions: sum_filters,
-              query: payload,
-              score_mode: "sum"
             }
           }
         end
@@ -553,23 +541,11 @@ module Searchkick
       elsif boost_by.is_a?(Hash)
         multiply_by, boost_by = boost_by.partition { |_, v| v[:boost_mode] == "multiply" }.map { |i| Hash[i] }
       end
+      binding.pry
       boost_by[options[:boost]] = {factor: 1} if options[:boost]
 
       custom_filters.concat boost_filters(boost_by, log: true)
       multiply_filters.concat boost_filters(multiply_by || {})
-    end
-
-    def set_boost_by_sum(sum_filters, custom_filters)
-      boost_by_sum = options[:boost_by_sum] || {}
-      if boost_by_sum.is_a?(Array)
-        boost_by_sum = Hash[boost_by_sum.map { |f| [f, {factor: 1}] }]
-      elsif boost_by_sum.is_a?(Hash)
-        sum_by, boost_by_sum = boost_by_sum.partition { |_, v| v[:boost_mode] == "sum" }.map { |i| Hash[i] }
-      end
-      boost_by_sum[options[:boost]] = {factor: 1} if options[:boost]
-
-      custom_filters.concat boost_filters(boost_by_sum, log: true)
-      sum_filters.concat boost_filters(sum_by || {})
     end
 
     def set_boost_where(custom_filters, personalize_field)
