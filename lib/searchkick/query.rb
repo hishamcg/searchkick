@@ -275,10 +275,8 @@ module Searchkick
               default_max_expansions = @misspellings_below ? 20 : 3
               max_expansions = (misspellings.is_a?(Hash) && misspellings[:max_expansions]) || default_max_expansions
             end
-
             fields.each do |field|
               qs = []
-
               factor = boost_fields[field] || 1
               shared_options = {
                 query: term,
@@ -295,12 +293,12 @@ module Searchkick
 
               shared_options[:operator] = operator if match_type == :match || below50?
               if field == "_all" || field.end_with?(".analyzed")
-                shared_options[:cutoff_frequency] = 0.001 unless operator == "and" || misspellings == false
+                #shared_options[:cutoff_frequency] = 0.001 unless operator == "and" || misspellings == false
                 
                 if field == "_all"
                   qs.concat [
-                    shared_options.merge(analyzer: "searchkick_search",operator: "and"),
-                    shared_options.merge(analyzer: "searchkick_search2",operator: "and")
+                    shared_options.merge(analyzer: "searchkick_search",operator: "and",cutoff_frequency: 0.001),
+                    shared_options.merge(analyzer: "searchkick_search2",operator: "and",cutoff_frequency: 0.001)
                   ]
                 else
                   qs.concat [
@@ -319,31 +317,37 @@ module Searchkick
                 qs << shared_options.merge(analyzer: analyzer)
               end
 
-              if misspellings != false && (match_type == :match || below50?)
+              if field != "_all" && misspellings != false && (match_type == :match || below50?)
                 qs.concat qs.map { |q| q.except(:cutoff_frequency).merge(fuzziness: edit_distance, prefix_length: prefix_length, max_expansions: max_expansions, boost: factor).merge(transpositions) }
               end
 
               # boost exact matches more
-              if field =~ /\.word_(start|middle|end)\z/ && searchkick_options[:word] != false
-                queries << {
-                  bool: {
-                    must: {
-                      bool: {
-                        should: qs.map { |q| {match_type => {field => q}} }
-                      }
-                    }
-                    #,
-                    #should: {match_type => {field.sub(/\.word_(start|middle|end)\z/, ".analyzed") => qs.first}}
-                  }
-                }
-              else
-                queries.concat(qs.map { |q| {match_type => {field => q}} })
-              end
+              #if field =~ /\.word_(start|middle|end)\z/ && searchkick_options[:word] != false
+                # queries << {
+                #   bool: {
+                #     # must: {
+                #     #   bool: {
+                #         should: qs.map { |q| {match_type => {field => q}} }
+                #     #   }
+                #     # }
+                #     #,
+                #     #should: {match_type => {field.sub(/\.word_(start|middle|end)\z/, ".analyzed") => qs.first}}
+                #   }
+                # }
+              #else
+              queries.concat(qs.map { |q| {match_type => {field => q}} })
+              #end
             end
 
+            # payload = {
+            #   dis_max: {
+            #     queries: queries
+            #   }
+            # }
+
             payload = {
-              dis_max: {
-                queries: queries
+              bool: {
+                should: queries
               }
             }
           end
@@ -397,7 +401,7 @@ module Searchkick
             function_score: {
               functions: custom_filters,
               query: payload,
-              score_mode: "sum"
+              score_mode: "multiply"
             }
           }
         end
@@ -541,7 +545,6 @@ module Searchkick
       elsif boost_by.is_a?(Hash)
         multiply_by, boost_by = boost_by.partition { |_, v| v[:boost_mode] == "multiply" }.map { |i| Hash[i] }
       end
-      binding.pry
       boost_by[options[:boost]] = {factor: 1} if options[:boost]
 
       custom_filters.concat boost_filters(boost_by, log: true)
@@ -947,7 +950,7 @@ module Searchkick
             script = log ? "log(doc['#{field}'].value + 2.718281828)" : "doc['#{field}'].value"
             {script_score: {script: "#{value[:factor].to_f} * #{script}"}}
           else
-            {field_value_factor: {field: field, factor: value[:factor].to_f, modifier: log ? "ln2p" : nil}}
+            {field_value_factor: {field: field, factor: value[:factor].to_f, modifier: log ? "log2p" : nil}}
           end
 
         {

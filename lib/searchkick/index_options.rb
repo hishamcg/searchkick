@@ -117,7 +117,7 @@ module Searchkick
               hisham_index_shingle:{
                 type: "shingle",
                 min_shingle_size: 2,
-                max_shingle_size: 4,
+                max_shingle_size: 5,
                 output_unigrams: true,
                 token_separator: ""
               },
